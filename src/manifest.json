@@ -1,0 +1,15 @@
+{
+	"manifest_version": 1,
+	"id": "joplin.plugin.bookmarks",
+	"app_min_version": "2.13",
+	"version": "1.0.0",
+	"name": "Bookmarks",
+	"description": "Lorem ipsum...",
+	"author": "Paweł Klockiewicz",
+	"homepage_url": "https://github.com/klocus/joplin-bookmarks",
+	"repository_url": "https://github.com/klocus/joplin-bookmarks",
+	"keywords": [],
+	"categories": [],
+	"screenshots": [],
+	"icons": {}
+}
