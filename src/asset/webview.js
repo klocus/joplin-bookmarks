@@ -1,77 +1,78 @@
-let formInputs = [];
-const selectedTags = [];
+class BookmarkFormManager {
+  constructor() {
+    this.formInputs = [];
+    this.selectedTags = [];
 
-init();
-
-function init() {
-  addEventListenersToInputs();
-  handleMessagesFromPlugin();
-}
-
-function addEventListenersToInputs() {
-  removeEventListenersFromInputs();
-
-  formInputs = document.querySelectorAll('input, textarea');
-
-  for (let i = 0; i < formInputs.length; i++) {
-    formInputs[i].addEventListener('change', handleInputChange);
-  }
-}
-
-function removeEventListenersFromInputs() {
-  for (let i = 0; i < formInputs.length; i++) {
-    formInputs[i].removeEventListener('change', handleInputChange);
+    this.addEventListenersToInputs();
+    this.handleMessagesFromPlugin();
   }
 
-  formInputs = [];
-}
+  addEventListenersToInputs() {
+    this.removeEventListenersFromInputs();
 
-function handleInputChange(event) {
-  const input = event.target;
+    this.formInputs = document.querySelectorAll('input, textarea');
 
-  switch (input.name) {
-    case 'url':
-    case 'title':
-    case 'description':
-      sendMessageAboutInputChange(input);
-      break;
-    case 'tags':
-      sendMessageAboutSelectedTag(input);
-      break;
+    for (let i = 0; i < this.formInputs.length; i++) {
+      this.formInputs[i].addEventListener('change', this.handleInputChange.bind(this));
+    }
   }
-}
 
-function sendMessageAboutInputChange(input) {
-  // noinspection JSUnresolvedReference
-  webviewApi.postMessage({
-    type: 'INPUT_CHANGED',
-    body: { name: input.name, value: input.value }
-  });
-}
+  removeEventListenersFromInputs() {
+    for (let i = 0; i < this.formInputs.length; i++) {
+      this.formInputs[i].removeEventListener('change', this.handleInputChange);
+    }
 
-function sendMessageAboutSelectedTag(input) {
-  const selectedTag = input.value;
+    this.formInputs = [];
+  }
 
-  if (!selectedTags.includes(selectedTag)) {
-    selectedTags.push(selectedTag);
-    input.value = '';
+  handleInputChange(event) {
+    const input = event.target;
 
+    switch (input.name) {
+      case 'url':
+      case 'title':
+      case 'description':
+        this.sendMessageAboutInputChange(input);
+        break;
+      case 'tags':
+        this.sendMessageAboutSelectedTag(input);
+        break;
+    }
+  }
+
+  sendMessageAboutInputChange(input) {
     // noinspection JSUnresolvedReference
     webviewApi.postMessage({
-      type: 'TAG_SELECTED',
-      body: selectedTag
+      type: 'INPUT_CHANGED',
+      body: { name: input.name, value: input.value }
+    });
+  }
+
+  sendMessageAboutSelectedTag(input) {
+    const selectedTag = input.value;
+
+    if (!this.selectedTags.includes(selectedTag)) {
+      this.selectedTags.push(selectedTag);
+      input.value = '';
+
+      // noinspection JSUnresolvedReference
+      webviewApi.postMessage({
+        type: 'TAG_SELECTED',
+        body: selectedTag
+      });
+    }
+  }
+
+  handleMessagesFromPlugin() {
+    // noinspection JSUnresolvedReference
+    webviewApi.onMessage((event) => {
+      switch (event.message.type) {
+        case 'RERENDER':
+          this.addEventListenersToInputs();
+          break;
+      }
     });
   }
 }
 
-function handleMessagesFromPlugin() {
-  // noinspection JSUnresolvedReference
-  webviewApi.onMessage((event) => {
-    switch (event.message.type) {
-      case 'RERENDER':
-        addEventListenersToInputs();
-        break;
-    }
-  });
-}
-
+const formManager = new BookmarkFormManager();
