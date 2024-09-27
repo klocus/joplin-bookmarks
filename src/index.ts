@@ -4,6 +4,8 @@ import { ViewHandle, DialogResult } from '../api/types';
 import Template = JsViews.Template;
 import { Message } from './type/message';
 import { FormData } from './type/form-data';
+import { TagList } from './type/tag-list';
+import { Tag } from './type/tag';
 
 class JoplinBookmarks {
   private dialog: ViewHandle;
@@ -15,10 +17,12 @@ class JoplinBookmarks {
     description: null
   };
 
-  private tagList: { items: { id: string, title: string }[] };
-  private selectedTags: string[] = [];
+  private tagList: TagList;
+  private selectedTags: Tag[] = [];
 
   constructor() {
+    jsrender.views.settings.allowCode(true);
+
     this.dialogTemplate = jsrender.templates(`
       <form name="bookmark">
         <p>
@@ -34,19 +38,24 @@ class JoplinBookmarks {
           <textarea id="description" name="description">{{:formData.description}}</textarea>
         </p>
         <p>
-          <label for="tags">Tags</label>
-          <input list="tag-list" id="tags" name="tags">
+          <label for="tag">Tags</label>
+          <input list="tag-list" id="tag" name="tag">
           <datalist id="tag-list">
             {{for tags}}
-              <option value="{{:title}}"></option>
+              <option data-value='{{*: JSON.stringify(data) }}' value="{{:title}}"></option>
             {{/for}}
           </datalist>
         </p>
-        <p>
+        <ul id="selected-tags">
           {{for selectedTags}}
-            {{:title}},
+            <li>
+              <button type="button" data-value='{{*: JSON.stringify(data) }}'>
+                <span>{{:title}}</span>
+                <span>&times;</span>
+              </button>
+            </li>
           {{/for}}
-        </p>
+        </ul>
       </form>
     `);
   }
@@ -89,23 +98,44 @@ class JoplinBookmarks {
           break;
         }
         case 'TAG_SELECTED': {
-          const selectedTagTitle: string = message.body;
-
-          this.selectedTags.push(selectedTagTitle);
-          this.tagList.items = this.tagList.items.filter(tag => tag.title !== selectedTagTitle)
-
-          await joplin.views.dialogs.setHtml(this.dialog, this.dialogTemplate.render({
-              formData: this.formData,
-              tags: this.tagList.items,
-              selectedTags: this.selectedTags
-            })
-          );
-
-          this.sendMessageToWebView('RERENDER');
+          await this.onTagSelected(message.body);
+          break;
+        }
+        case 'TAG_REMOVED': {
+          await this.onTagRemoved(message.body);
           break;
         }
       }
     });
+  }
+
+  private async onTagSelected(selectedTag: Tag) {
+    this.selectedTags.push(selectedTag);
+    this.tagList.items = this.tagList.items.filter(tag => tag.id !== selectedTag.id)
+
+    await joplin.views.dialogs.setHtml(this.dialog, this.dialogTemplate.render({
+        formData: this.formData,
+        tags: this.tagList.items,
+        selectedTags: this.selectedTags
+      })
+    );
+
+    this.sendMessageToWebView('RERENDER');
+  }
+
+  private async onTagRemoved(removedTag: Tag) {
+    this.selectedTags = this.selectedTags.filter(tag => tag.id !== removedTag.id);
+
+    this.tagList.items.push(removedTag);
+
+    await joplin.views.dialogs.setHtml(this.dialog, this.dialogTemplate.render({
+        formData: this.formData,
+        tags: this.tagList.items,
+        selectedTags: this.selectedTags
+      })
+    );
+
+    this.sendMessageToWebView('RERENDER');
   }
 
   private sendMessageToWebView(type: string, body?: any) {
@@ -116,8 +146,7 @@ class JoplinBookmarks {
 
 joplin.plugins.register({
   onStart: async function() {
-    // eslint-disable-next-line no-console
-    console.info('Hello world. Test plugin started!');
+    console.info('Joplin Bookmarks started!');
 
     const joplinBookmarks: JoplinBookmarks = new JoplinBookmarks();
     await joplinBookmarks.init();
