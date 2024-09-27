@@ -75,8 +75,6 @@ class JoplinBookmarks {
 
     await this.handleMessagesFromWebView();
 
-    this.sendMessageToWebView('RENDER');
-
     const result: DialogResult = await joplin.views.dialogs.open(this.dialog);
     console.info('Got result: ' + JSON.stringify(result));
   }
@@ -103,7 +101,7 @@ class JoplinBookmarks {
             })
           );
 
-          this.sendMessageToWebView('RENDER');
+          this.sendMessageToWebView('RERENDER');
           break;
         }
       }

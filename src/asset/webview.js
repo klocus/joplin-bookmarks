@@ -1,26 +1,29 @@
+let formInputs = [];
 const selectedTags = [];
 
-addEventListenersToFormInputs();
+init();
 
-// noinspection JSUnresolvedReference
-webviewApi.onMessage((message) => {
-  console.log('MESSAGE', message);
+function init() {
+  addEventListenersToInputs();
+  handleMessagesFromPlugin();
+}
 
-  switch (message.type) {
-    case 'RENDER':
-      addEventListenersToFormInputs();
-      break;
-  }
-});
+function addEventListenersToInputs() {
+  removeEventListenersFromInputs();
 
-// @TODO: Events are not working after HTML re-render
-function addEventListenersToFormInputs() {
-  const formInputs = document.querySelectorAll('input, textarea');
+  formInputs = document.querySelectorAll('input, textarea');
 
   for (let i = 0; i < formInputs.length; i++) {
-    //@TODO: Remove event listener after re-render
     formInputs[i].addEventListener('change', handleInputChange);
   }
+}
+
+function removeEventListenersFromInputs() {
+  for (let i = 0; i < formInputs.length; i++) {
+    formInputs[i].removeEventListener('change', handleInputChange);
+  }
+
+  formInputs = [];
 }
 
 function handleInputChange(event) {
@@ -61,12 +64,14 @@ function sendMessageAboutSelectedTag(input) {
   }
 }
 
-document.addEventListener('click', event => {
-  const element = event.target;
-  if (element) {
-    webviewApi.postMessage({
-      type: 'scrollToHash',
-      body: 'test'
-    });
-  }
-})
+function handleMessagesFromPlugin() {
+  // noinspection JSUnresolvedReference
+  webviewApi.onMessage((event) => {
+    switch (event.message.type) {
+      case 'RERENDER':
+        addEventListenersToInputs();
+        break;
+    }
+  });
+}
+
